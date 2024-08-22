@@ -45,10 +45,8 @@ class GameController:
             player.add_cards(self.deck.draw_many(7)) #7 Kartu awal di tangan
             await player.announce(f"Your deck is {' '.join(map(str, player.hand))}")
         await self.announce_all(f"It's {self.get_current_player()}'s turn.")
-        await self.announce_all(f"It's {self.get_current_player()}'s turn.")
         first_card = self.deck.draw()
         self.deck.discard([first_card])
-        await self.announce_all(f"It's a {first_card}")
         await self.announce_all(f"It's a {first_card}")
         if first_card.type == Action.Reverse:
             self.turn_direction = -1
@@ -91,7 +89,7 @@ class GameController:
             await player.announce('*')
             return
 
-        self.announce_all(f'{player} played {', '.join(map(str, cards))}') 
+        await self.announce_all(f'{player} played {', '.join(map(str, cards))}') 
         #Map manggil fungsi pertama ke masing2 elemen yang ada di arg 2 di cards
         if first_card.type == Action.Plus2:
             self.plus_stack += len(cards) * 2
@@ -103,7 +101,7 @@ class GameController:
         if first_card.type == Action.Skip:
             self.advance_turn(len(cards)) #len(cards) banyaknya skip dibuang
         
-        self.announced_color = announced_color
+        self.announce_color = announced_color
         self.deck.discard(cards)
         await self.announce_all(f"The top of the pile is now {self.deck.get_last_card()}.")
         self.advance_turn()
