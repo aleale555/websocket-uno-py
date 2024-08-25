@@ -29,7 +29,9 @@ class Card:
         return f'<Card {self}>'
     def is_wild(self):
         return self.type == Action.Plus4 or self.type == Action.Wild
-    def can_play_over(self, last_played, announced_color):
+    def can_play_over(self, last_played, announced_color, is_hot):
+        if is_hot and last_played.countering_type == 'plus' and self.countering_type != 'plus':
+            return False
         if last_played.is_wild():
             last_played_color = announced_color
         else:

@@ -40,6 +40,7 @@ class WebsocketServer:
                     await self.game.start_game()
             elif self.game is not None:
                 await self.game.on_player_input(player, message)
+                
 async def main():
     print('Running!')
     server = WebsocketServer(2)

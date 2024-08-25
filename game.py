@@ -66,8 +66,10 @@ class GameController:
         #Jika pesan isinya draw
         if message == 'draw':
             if self.plus_stack > 0:
+                cards = []
                 for _ in range(self.plus_stack):
-                    player.add_card(self.deck.draw())
+                    cards.append(self.deck.draw())
+                    player.add_cards(cards)
                 await self.announce_all(f"{player} drew {[self.plus_stack]} cards. ")
                 await player.announce(f'You drew {" ".join(map(str, cards))}')
                 self.plus_stack = 0
@@ -98,6 +100,18 @@ class GameController:
         if first_card.type == Action.Reverse:
             if len(cards) % 2 != 0:
                 self.turn_direction *= -1
+        if len(player.hand) == 0:
+            await self.announce_all(f'{player} won the game!')
+            del self.players[self.turn]
+            if len(self.players) == 1:
+                await self.announce_all(f'All player has won except of {self.players[0]}')
+                await self.announce_all('The game is over')
+                await self.announce_all('$')
+                return
+            if self.turn_direction < 0:
+                pass  # The turn doesn't change
+            else:
+                self.turn = (self.turn - 1) % len(self.players)        
         if first_card.type == Action.Skip:
             self.advance_turn(len(cards)) #len(cards) banyaknya skip dibuang
         
@@ -121,9 +135,10 @@ class GameController:
         first_card = cards[0]
         for card in cards:
             if card.type != first_card.type:
+                player.add_cards(cards)
                 raise ValidationFailed('[ERR] All cards must be the same type.')
             #Cek kartunya counteringnya valid
-        if not first_card.can_play_over(self.deck.get_last_card(), self.announce_color):
+        if not first_card.can_play_over(self.deck.get_last_card(), self.announce_color, self.plus_stack > 0):
                 player.add_cards(cards) #Kembalikan kartu yang sudah diambil
 
                 raise ValidationFailed(f"[ERR] {first_card} cannot play over the last card.")
