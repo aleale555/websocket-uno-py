@@ -59,6 +59,13 @@ class GameController:
             self.plus_stack += 4
         await self.get_current_player().announce('*')
         
+    async def announce_new_turn(self):
+        await self.announce_all(f"The top of the pile is now {self.deck.get_last_card()}.")
+        self.advance_turn()   #Pindah ke next player
+        await self.announce_all(f"It's {self.get_current_player()}'s turn. ".ljust(20, '='))
+        await self.get_current_player().announce(f'Your hand is {" ".join(map(str, self.get_current_player().hand))}')
+        await self.get_current_player().announce('*') #* Pesan utk nandain client gilirannya
+
     async def on_player_input(self, player: 'Player', message: str): #Untuk draw kartu
         #Pengirim pesan bukan current player
         if player != self.get_current_player():
@@ -79,10 +86,7 @@ class GameController:
                 await self.announce_all(f'{player} drew a card.')
                 await player.announce(f'You drew a {drawn_card}')
             await player.announce(f'Your hand is {" ".join(map(str, player.hand))}')
-            self.advance_turn()   #Pindah ke next player
-            await self.announce_all(f"\nIt's {player}'s turn.")
-            await self.get_current_player().announce(f'Your hand is {" ".join(map(str, self.get_current_player().hand))}')
-            await self.get_current_player().announce('*')
+            await self.announce_new_turn()
             return
         try:
             first_card, cards, announced_color, uno = self.parse_and_validate(message, player)
@@ -104,9 +108,10 @@ class GameController:
             await self.announce_all(f'{player} won the game!')
             del self.players[self.turn]
             if len(self.players) == 1:
-                await self.announce_all(f'All player has won except of {self.players[0]}')
-                await self.announce_all('The game is over')
-                await self.announce_all('$')
+                await self.announce_all(
+                    f'All player has won except of {self.players[0]}',
+                    'The game is over',
+                    '$')
                 return
             if self.turn_direction < 0:
                 pass  # The turn doesn't change
@@ -117,11 +122,7 @@ class GameController:
         
         self.announce_color = announced_color
         self.deck.discard(cards)
-        await self.announce_all(f"The top of the pile is now {self.deck.get_last_card()}.")
-        self.advance_turn()
-        await self.announce_all(f"It's {self.get_current_player()}'s turn.")
-        await self.get_current_player().announce(f'Your hand is {" ".join(map(str, self.get_current_player().hand))}')
-        await self.get_current_player().announce('*') #* Pesan utk nandain client gilirannya
+        await self.announce_new_turn()
 
     def parse_and_validate(self, message, player):
         try:
@@ -151,11 +152,11 @@ class GameController:
         return self.players[self.turn]
     def advance_turn(self, turns= 1):
         self.turn = (self.turn + self.turn_direction * turns) % len(self.players)  #Pindah ke next player
-    async def announce_all(self, message):
+    async def announce_all(self, *messages):
         for player in self.players:
-            await player.announce(message)
+            for message in messages:
+                await player.announce(message)
     def breakdown_message(self, message: str):
-        import re
         format = re.compile(
             r'(?P<played_cards>(([0-9srt][RGBY])|[wf])( (([0-9srt][RGBY])|[wf]))*)'
             + r'( (?P<announced_color>[RGBY]))?'
