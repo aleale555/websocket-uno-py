@@ -60,10 +60,21 @@ class GameController:
         await self.get_current_player().announce('*')
         
     async def announce_new_turn(self):
-        await self.announce_all(f"The top of the pile is now {self.deck.get_last_card()}.")
+        top = self.deck.get_last_card()
+        if top.is_wild():
+            top_str = f'{top} ({self.announce_color.value})'
+        else:
+            top_str = str(top)
+        await self.announce_all(f"The top of the pile is now {top_str}.")
         self.advance_turn()   #Pindah ke next player
         await self.announce_all(f"It's {self.get_current_player()}'s turn. ".ljust(20, '='))
-        await self.get_current_player().announce(f'Your hand is {" ".join(map(str, self.get_current_player().hand))}')
+        player_deck_str_list = []
+        for card in self.get_current_player().hand:
+            if card.can_play_over(top, self.announce_color, self.plus_stack > 0):
+                player_deck_str_list.append(str(card))
+            else:
+                player_deck_str_list.append(f'\033[90m{card.get_code()}\033[0m')
+        await self.get_current_player().announce(f'Your hand is {" ".join(player_deck_str_list)}')
         await self.get_current_player().announce('*') #* Pesan utk nandain client gilirannya
 
     async def on_player_input(self, player: 'Player', message: str): #Untuk draw kartu
@@ -76,7 +87,7 @@ class GameController:
                 cards = []
                 for _ in range(self.plus_stack):
                     cards.append(self.deck.draw())
-                    player.add_cards(cards)
+                player.add_cards(cards)
                 await self.announce_all(f"{player} drew {[self.plus_stack]} cards. ")
                 await player.announce(f'You drew {" ".join(map(str, cards))}')
                 self.plus_stack = 0
